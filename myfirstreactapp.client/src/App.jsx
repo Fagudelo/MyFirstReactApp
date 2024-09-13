@@ -1,49 +1,114 @@
+import { Container, Row, Col, Card, CardHeader, CardTitle, CardBody, Button } from 'reactstrap';
 import { useEffect, useState } from 'react';
+import TablaContacto from './components/TablaContacto';
+import ModalContacto from './components/ModalContacto';
 import './App.css';
 
 function App() {
-    const [forecasts, setForecasts] = useState();
+
+    const [contactos, setContactos] = useState([]);
+    const [mostrarModal, setMostrarModal] = useState(false);
+    const [editar, setEditar] = useState(null);
+
+    const mostrarContactos = async () => {
+
+        const response = await fetch("/api/contacto/List");
+
+        if (response.ok) {
+            const data = await response.json();
+            setContactos(data)
+        } else {
+            console.log("error list");
+        }
+    }
 
     useEffect(() => {
-        populateWeatherData();
+        mostrarContactos();
     }, []);
 
-    const contents = forecasts === undefined
-        ? <p><em>Loading... Please refresh once the ASP.NET backend has started. See <a href="https://aka.ms/jspsintegrationreact">https://aka.ms/jspsintegrationreact</a> for more details.</em></p>
-        : <table className="table table-striped" aria-labelledby="tableLabel">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Temp. (C)</th>
-                    <th>Temp. (F)</th>
-                    <th>Summary</th>
-                </tr>
-            </thead>
-            <tbody>
-                {forecasts.map(forecast =>
-                    <tr key={forecast.date}>
-                        <td>{forecast.date}</td>
-                        <td>{forecast.temperatureC}</td>
-                        <td>{forecast.temperatureF}</td>
-                        <td>{forecast.summary}</td>
-                    </tr>
-                )}
-            </tbody>
-        </table>;
+    const guardarContacto = async (contacto) => {
+        const response = await fetch("/api/contacto/Add", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json;charset=utf-8'
+            },
+            body: JSON.stringify(contacto)
+        });
+
+        if (response.ok) {
+            setMostrarModal(!mostrarModal)
+            mostrarContactos();
+        }
+    }
+
+    const editarContacto = async (contacto) => {
+        const response = await fetch("api/contacto/Update", {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json;charset=utf-8'
+            },
+            body: JSON.stringify(contacto)
+        });
+
+        if (response.ok) {
+            setMostrarModal(!mostrarModal)
+            mostrarContactos();
+        }
+    }
+
+    const eliminarContacto = async (id) => {
+
+        var respuesta = window.confirm("Esta seguro que desea eliminar el contacto?");
+
+        if (!respuesta) {
+            return;
+        }
+
+        const response = await fetch("api/contacto/Delete/" + id, {
+            method: 'DELETE'
+        })
+
+        if (response.ok) {
+            mostrarContactos();
+        }
+    }
 
     return (
-        <div>
-            <h1 id="tableLabel">Weather forecast</h1>
-            <p>This component demonstrates fetching data from the server.</p>
-            {contents}
-        </div>
+        <>
+            <Container>
+                <Row className="mt-5">
+                    <Col sm="12">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle tag="h5">
+                                    Lista de contactos
+                                </CardTitle>
+                            </CardHeader>
+                            <CardBody>
+                                <Button size="sm" color="success" onClick={(() => setMostrarModal(!mostrarModal))}>Nuevo Contacto</Button>
+                                <hr></hr>
+                                <TablaContacto
+                                    data={contactos}
+                                    setEditar={setEditar}
+                                    mostrarModal={mostrarModal}
+                                    setMostrarModal={setMostrarModal}
+                                    eliminarContacto={eliminarContacto}>
+                                </TablaContacto>
+                            </CardBody>
+                        </Card>
+                    </Col>
+                </Row>
+                <ModalContacto
+                    mostrarModal={mostrarModal}
+                    setMostrarModal={setMostrarModal}
+                    guardarContacto={guardarContacto}
+                    editar={editar}
+                    setEditar={setEditar}
+                    editarContacto={editarContacto}>
+                </ModalContacto>
+            </Container>
+        </>
     );
-    
-    async function populateWeatherData() {
-        const response = await fetch('weatherforecast');
-        const data = await response.json();
-        setForecasts(data);
-    }
 }
 
 export default App;
